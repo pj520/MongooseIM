@@ -47,9 +47,16 @@ groups() ->
            muclight_msg_notify_on_apns_silent,
            muclight_msg_notify_on_fcm_silent,
            muclight_msg_notify_on_w_topic
-          ]}
-        ],
-    ct_helper:repeat_all_until_all_ok(G).
+          ]},
+
+         {inbox_msg_notifications, [sequence],
+         [
+          inbox_msg_unread_count_apns,
+          inbox_msg_unread_count_fcm
+         ]
+         }
+        ].
+%%    ct_helper:repeat_all_until_all_ok(G).
 
 suite() ->
     escalus:suite().
@@ -144,6 +151,7 @@ assert_push_notification(Notification, Service, EnableOpts, SenderJID) ->
                     ?assertMatch(#{<<"click_action">> := Activity}, Alert)
             end;
         <<"true">> ->
+            ct:pal("~p~n", [Data]),
             ?assertMatch(#{<<"last-message-body">> := ExpectedBody}, Data),
             ?assertMatch(#{<<"last-message-sender">> := SenderJID}, Data),
             ?assertMatch(#{<<"message-count">> := 1}, Data)
