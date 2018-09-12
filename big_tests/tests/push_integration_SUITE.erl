@@ -23,7 +23,8 @@
 all() ->
     [
         {group, pm_msg_notifications},
-        {group, muclight_msg_notifications}
+        {group, muclight_msg_notifications},
+        {group, inbox_msg_notifications}
     ].
 
 groups() ->
@@ -95,11 +96,19 @@ end_per_suite(Config) ->
     mongoose_push_mock:stop(),
     escalus:end_per_suite(Config).
 
+init_per_group(inbox_msg_notifications, Config) ->
+    dynamic_modules:start(domain(), mod_inbox, [{backend, rdbms}]),
+    Config;
+
 init_per_group(_, Config) ->
     %% Some cleaning up
     rpc(mod_muc_light_db_backend, force_clear, []),
 
     Config.
+
+end_per_group(inbox_msg_notifications, Config) ->
+    dynamic_modules:stop(domain(), mod_inbox),
+    Config;
 
 end_per_group(_, Config) ->
     Config.
@@ -195,6 +204,27 @@ pm_msg_notify_on_apns_silent(Config) ->
 
 pm_msg_notify_on_apns_w_topic(Config) ->
     pm_msg_notify_on_apns(Config, [{<<"topic">>, <<"some_topic">>}]).
+
+%%--------------------------------------------------------------------
+%% GROUP inbox_msg_notifications
+%%--------------------------------------------------------------------
+inbox_msg_unread_count(Config, Service, EnableOpts) ->
+    escalus:story(
+      Config, [{bob, 1}, {alice, 1}],
+      fun(Bob, Alice) ->
+              {_SenderJID, DeviceToken} = pm_conversation_multiple_messages(Alice, Bob, Service, EnableOpts),
+              Notification = wait_for_push_request(DeviceToken),
+              Data = maps:get(<<"data">>, Notification, undefined),
+              ?assertMatch(#{<<"message-count">> := 2}, Data)
+
+        end).
+
+inbox_msg_unread_count_apns(Config) ->
+    inbox_msg_unread_count(Config, <<"apns">>, [{<<"silent">>, <<"true">>}]).
+
+inbox_msg_unread_count_fcm(Config) ->
+    inbox_msg_unread_count(Config, <<"fcm">>, [{<<"silent">>, <<"true">>}]).
+
 
 %%--------------------------------------------------------------------
 %% GROUP muclight_msg_notifications
