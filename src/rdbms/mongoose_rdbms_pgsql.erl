@@ -113,6 +113,8 @@ pgsql_to_rdbms({error, #error{message = Message}}) ->
     {error, unicode:characters_to_list(Message)};
 pgsql_to_rdbms({ok, Count}) ->
     {updated, Count};
+pgsql_to_rdbms({ok, Count, _Column, Value}) ->
+    {updated, Count, Value};
 pgsql_to_rdbms({ok, _Columns, Rows}) ->
     {selected, Rows}.
 
