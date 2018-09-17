@@ -152,7 +152,8 @@ filter_packet(drop) ->
     drop;
 filter_packet({From, To, Acc, Msg = #xmlel{name = <<"message">>}}) ->
     Host = To#jid.server,
-    maybe_process_message(Host, From, To, Msg, incoming),
+    R = maybe_process_message(Host, From, To, Msg, incoming),
+    ?ERROR_MSG("~n~n~p~n~n", [R]),
     {From, To, Acc, Msg};
 filter_packet({From, To, Acc, Packet}) ->
     {From, To, Acc, Packet}.
