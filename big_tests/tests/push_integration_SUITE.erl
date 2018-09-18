@@ -224,8 +224,6 @@ inbox_msg_unread_count_apns(Config) ->
 
 inbox_msg_unread_count_fcm(Config) ->
     inbox_msg_unread_count(Config, <<"fcm">>, [{<<"silent">>, <<"true">>}]).
-
-
 %%--------------------------------------------------------------------
 %% GROUP muclight_msg_notifications
 %%--------------------------------------------------------------------
@@ -300,6 +298,13 @@ pm_conversation(Alice, Bob, Service, EnableOpts) ->
     escalus:send(Alice, escalus_stanza:chat_to(Bob, <<"OH, HAI!">>)),
     {AliceJID, DeviceToken}.
 
+pm_conversation_multiple_messages(Sender, Recipient, Service, EnableOpts) ->
+    SenderJID = bare_jid(Sender),
+    DeviceToken = enable_push_for_user(Recipient, Service, EnableOpts),
+    escalus:send(Sender, escalus_stanza:chat_to(Recipient, <<"One">>)),
+    escalus:send(Sender, escalus_stanza:chat_to(Recipient, <<"Two">>)),
+    escalus:send(Sender, escalus_stanza:chat_to(Recipient, <<"Three">>)),
+    {SenderJID, DeviceToken}.
 
 enable_push_for_user(User, Service, EnableOpts) ->
     PubsubJID = node_addr(),
