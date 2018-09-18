@@ -152,9 +152,13 @@ filter_packet(drop) ->
     drop;
 filter_packet({From, To, Acc, Msg = #xmlel{name = <<"message">>}}) ->
     Host = To#jid.server,
-    R = maybe_process_message(Host, From, To, Msg, incoming),
-    ?ERROR_MSG("~n~n~p~n~n", [R]),
-    {From, To, Acc, Msg};
+    Acc0 = case maybe_process_message(Host, From, To, Msg, incoming) of
+        {ok, UnreadCount} ->
+                   mongoose_acc:put(unread_count, UnreadCount, Acc);
+       _ ->
+          Acc 
+    end,
+    {From, To, Acc0, Msg};
 filter_packet({From, To, Acc, Packet}) ->
     {From, To, Acc, Packet}.
 
@@ -162,17 +166,24 @@ filter_packet({From, To, Acc, Packet}) ->
                             From :: jid:jid(),
                             To :: jid:jid(),
                             Msg :: exml:element(),
-                            Dir :: outgoing | incoming) -> ok.
+                            Dir :: outgoing | incoming) -> ok | {ok, binary()}.
 maybe_process_message(Host, From, To, Msg, Dir) ->
     AcceptableMessage = should_be_stored_in_inbox(Msg),
-    if AcceptableMessage ->
-        Type = get_message_type(Msg),
-        Type == one2one andalso
-        process_message(Host, From, To, Msg, Dir, one2one),
-        (Type == groupchat andalso muclight_enabled(Host)) andalso % legacy MUC is handled in seperate module
-        process_message(Host, From, To, Msg, Dir, groupchat);
+    case AcceptableMessage of
         true ->
+            Type = get_message_type(Msg),
+            maybe_process_acceptable_message(Host, From, To, Msg, Dir, Type);
+        false ->
             ok
+    end.
+
+maybe_process_acceptable_message(Host, From, To, Msg, Dir, Type) ->
+    case Type of
+        one2one ->
+            process_message(Host, From, To, Msg, Dir, one2one);
+        groupchat ->
+            muclight_enabled(Host) andalso
+            process_message(Host, From, To, Msg, Dir, groupchat)
     end.
 
 -spec process_message(Host :: host(),
@@ -180,7 +191,7 @@ maybe_process_message(Host, From, To, Msg, Dir) ->
                       To :: jid:jid(),
                       Message :: exml:element(),
                       Dir :: outgoing | incoming,
-                      Type :: one2one | groupchat) -> ok.
+                      Type :: one2one | groupchat) -> ok | {ok, binary()}.
 process_message(Host, From, To, Message, outgoing, one2one) ->
     mod_inbox_one2one:handle_outgoing_message(Host, From, To, Message);
 process_message(Host, From, To, Message, incoming, one2one) ->
