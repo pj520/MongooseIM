@@ -44,6 +44,7 @@ handle_incoming_message(Host, User, Remote, Packet) ->
             mod_inbox_utils:write_to_receiver_inbox(Host, User, Remote, Packet2);
         _Id ->
             %% do not store chat markers in inbox
+            %TODO unread_count is not added to acc her, shoult it?
             ok
     end.
 
