@@ -13,7 +13,7 @@
 -include("mod_inbox.hrl").
 -include("mongoose_logger.hrl").
 
--export([set_inbox/7, set_inbox_incr_unread/6]).
+-export([set_inbox/7, set_inbox_incr_unread/6, get_inbox_unread/3]).
 
 -import(mod_inbox_rdbms, [esc_string/1, esc_int/1]).
 
@@ -60,4 +60,9 @@ set_inbox_incr_unread(Username, Server, ToBareJid, Content, MsgId, Timestamp) ->
                               "msg_id=", esc_string(MsgId), ", ",
                               "timestamp=", esc_int(Timestamp), "returning unread_count;"]).
 
+get_inbox_unread(Username, Server, ToBareJid) ->
+    mongoose_rdbms:sql_query(Server,
+                             ["select unread_count from inbox where "
+                              "luser=", esc_string(Username), "AND lserver=", esc_string(Server),
+                              "AND remote_bare_jid=", esc_string(ToBareJid), ";"]).
 

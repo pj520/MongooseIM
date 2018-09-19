@@ -27,7 +27,10 @@ handle_outgoing_message(Host, User, Remote, Packet) ->
             FromBin = jid:to_binary(User),
             Packet2 = mod_inbox_utils:fill_from_attr(Packet, FromBin),
             Server = User#jid.lserver,
-            mod_inbox_utils:write_to_sender_inbox(Server, User, Remote, Packet2);
+            Username = User#jid.luser,
+            Remotename = Remote#jid.luser,
+            mod_inbox_utils:write_to_sender_inbox(Server, User, Remote, Packet2),
+            mod_inbox_backend:get_inbox_unread( Remotename, Server,Username);
         Id ->
             mod_inbox_utils:reset_unread_count(User, Remote, Id)
     end.
